@@ -508,16 +508,16 @@ void EMMonitor::MakeMenuLayout()
   
   dMenuFile = new TGPopupMenu(fClient->GetRoot());  
   dMenuFile->AddEntry("&Write (Text output)...", M_TEXT_FILE_WRITE);
-  dMenuFile->AddEntry("&RWrite (ROOT output)...", M_ROOT_FILE_WRITE);  
-  dMenuFile->AddEntry("&Open (Text file)...", M_FILE_OPEN);
-  dMenuFile->AddEntry("RO&pen (ROOT file)...", M_ROOT_FILE_OPEN);
+  //dMenuFile->AddEntry("&RWrite (ROOT output)...", M_ROOT_FILE_WRITE);  
+  //dMenuFile->AddEntry("&Open (Text file)...", M_FILE_OPEN);
+  //dMenuFile->AddEntry("RO&pen (ROOT file)...", M_ROOT_FILE_OPEN);
   //dMenuFile->AddEntry("Open Data Window",M_OPEN_DATAWINDOW);
-  dMenuFile->AddEntry("&Close (Text file ...)", M_FILE_CLOSE);
-  dMenuFile->AddEntry("C&lose (ROOT file ...)", M_ROOT_FILE_CLOSE);  
-  dMenuFile->AddSeparator();
-  dMenuFile->AddEntry("Root File Browser", M_VIEW_BROWSER);
-  dMenuFile->AddSeparator();
-  dMenuFile->AddSeparator();
+  //dMenuFile->AddEntry("&Close (Text file ...)", M_FILE_CLOSE);
+  //dMenuFile->AddEntry("C&lose (ROOT file ...)", M_ROOT_FILE_CLOSE);  
+  //dMenuFile->AddSeparator();
+  //dMenuFile->AddEntry("Root File Browser", M_VIEW_BROWSER);
+  //dMenuFile->AddSeparator();
+  //dMenuFile->AddSeparator();
   dMenuFile->AddEntry("E&xit", M_FILE_EXIT);
 
   dMenuRunCntrl = new TGPopupMenu(fClient->GetRoot());
