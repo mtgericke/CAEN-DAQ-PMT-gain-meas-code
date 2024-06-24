@@ -2,7 +2,7 @@ Double_t SinglePESpectrum(Double_t *x, Double_t *par);
 Double_t SpeFunction(Double_t *x, Double_t *par);
 Double_t GaussZGaussN(Double_t *x, Double_t *par, Int_t n);
 Double_t GaussBackground(Double_t *x, Double_t *par, Int_t n);
-void DoFit(TH1D *hst);
+void DoFit(TH1D *hst, Int_t Ped, Int_t Pedw, Int_t Spe, Int_t Spew);
 
 Int_t cPE = 4;
 Int_t events;
@@ -11,7 +11,7 @@ Double_t GainResults[3];
 ofstream oFile;
 
 
-void SinglePEGain(const char* file, Int_t app, double_t HV, Int_t SerialN, Int_t nPE)
+void SinglePEGain(const char* file, Int_t app, double_t HV, Int_t SerialN, Int_t nPE, Int_t Ped = 0, Int_t Pedw = 0, Int_t Spe = 0, Int_t Spew = 0)
 {
   cPE = nPE;
   
@@ -39,9 +39,10 @@ void SinglePEGain(const char* file, Int_t app, double_t HV, Int_t SerialN, Int_t
       iFile->close();
     }    
   }
-  
+
+  hst->Scale(1.0/hst->Integral());
   hst->Draw();
-  DoFit(hst);
+  DoFit(hst,Ped,Pedw,Spe,Spew);
   
   TString fname(Form("PMTGainResults_PMT_%d.txt",SerialN));
   
@@ -64,7 +65,7 @@ void SinglePEGain(const char* file, Int_t app, double_t HV, Int_t SerialN, Int_t
   
 }
 
-void DoFit(TH1D *hst)
+void DoFit(TH1D *hst, Int_t ped, Int_t pedw, Int_t spe, Int_t spew)
 {
   //fit parameters used in fp[] below:
   //par 0 = mu  Poisson distribution mean for SPE 
@@ -80,13 +81,14 @@ void DoFit(TH1D *hst)
   Double_t peaks_m[npeaks];
   Double_t peaks_h[npeaks];
   TSpectrum *s = new TSpectrum(2*npeaks);
-  Int_t nfound = s->Search(hst,50,"",0.05);
+  Int_t nfound = s->Search(hst,20,"",0.05);
   if(nfound == 0){
     cout << "No peaks to fit to have been found. Returning ..." << endl;
     return;
   }
   peaks_m[0] =  s->GetPositionX()[0];
   peaks_h[0] =  s->GetPositionY()[0];
+  
   cout << "Pedestal peak located at " << peaks_m[0] << " height = " << peaks_h[0] << endl;  
   //Int_t nfound2 = s->Search(hst,50,"",0.05);
   if(nfound > 1){
@@ -95,9 +97,11 @@ void DoFit(TH1D *hst)
     cout << "Event peak located at " << peaks_m[1] << " height = " << peaks_h[1] << endl;
   }
   else{
-    peaks_m[1] =  peaks_m[0] + 10;  //set the single PE peak marginally higher than the pedestal peak 
+    peaks_m[1] =  peaks_m[0] + 50;  //set the single PE peak marginally higher than the pedestal peak 
     peaks_h[1] =  peaks_h[0];
   }
+  if(ped) peaks_m[0] = ped;
+  if(spe) peaks_m[1] = spe;
   
   gPad->Update();
 
@@ -109,10 +113,12 @@ void DoFit(TH1D *hst)
   fp[1] = 0.1;  
   fp[2] = peaks_m[0];
   fp[3] = peaks_m[1]-peaks_m[0];
-  fp[4] = 30;
-  fp[5] = 30;
+  fp[4] = 10;
+  if(pedw) fp[4] = pedw;
+  fp[5] = 50;
+  if(spew) fp[5] = spew;
   fp[6] = 0.01;
-  fp[7] = events;
+  fp[7] = 1;
   
   TF1 *func = new TF1("func",SinglePESpectrum,fr[0],fr[1],8);
   func->SetNpx(5000);
@@ -120,17 +126,21 @@ void DoFit(TH1D *hst)
   func->SetParNames("#mu","w","Q0","Q1","sigma 0","sigma 1","alpha","ampl");
   func->SetParLimits(0,0,1);
   func->SetParLimits(1,0,1);
-  func->SetParLimits(2,0,4906);
-  func->SetParLimits(3,0,4096);
-  func->SetParLimits(4,0,4096);
-  func->SetParLimits(5,0,4096);
+  func->SetParLimits(2,fp[2]-50,fp[2]+50);
+  func->SetParLimits(3,fp[3]-50,fp[3]+50);
+  func->SetParLimits(4,1,fp[4]+50);
+  func->SetParLimits(5,1,fp[5]+50);
   func->SetParLimits(6,0,100);
-  func->SetParLimits(7,0,1e7);
+  func->SetParLimits(7,0,1);
 
   hst->Fit("func","RB");
 
   Double_t fitres[8];
   func->GetParameters(fitres);    // obtain fit parameters
+  //func->SetParameters(fitres);
+  //hst->Fit("func","RB");
+
+
   GainResults[1] =  fitres[3]/1.6/5;
   GainResults[2] =  func->GetParError(3)/1.6/5;
 
@@ -195,7 +205,7 @@ Double_t SinglePESpectrum(Double_t *x, Double_t *par)
   //par 7 = events   Number of data  events in the histogram  
 
   Double_t F = 0;
-  Double_t amp  = par[7];
+  Double_t amp  = 1;//par[7];
   
   for(int n = 0; n < cPE; n++){
 
@@ -211,7 +221,7 @@ Double_t SpeFunction(Double_t *x, Double_t *par)
 {
   int n = par[8];
   
-  return par[7]*((1-par[1])*GaussZGaussN(x,par,n) + par[1]*GaussBackground(x,par,n))*TMath::Power(par[0],n)*TMath::Exp(-par[0])/TMath::Factorial(n);
+  return ((1-par[1])*GaussZGaussN(x,par,n) + par[1]*GaussBackground(x,par,n))*TMath::Power(par[0],n)*TMath::Exp(-par[0])/TMath::Factorial(n);
   //return par[7]*((1-par[1])*GaussZGaussN(x,par,n))*TMath::Power(par[0],n)*TMath::Exp(-par[0])/TMath::Factorial(n);
 
 }
