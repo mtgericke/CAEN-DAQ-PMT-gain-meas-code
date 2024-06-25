@@ -49,9 +49,9 @@ void SinglePEGain(const char* file, Int_t app, double_t HV, Int_t SerialN, Int_t
   if(app){
     oFile.open(fname.Data(),std::ios_base::app);
   }
-  else{
-    oFile.open(fname.Data());
-  }
+  // else{
+  //   oFile.open(fname.Data());
+  // }
   
   if(oFile.is_open()){
     if(!app){
@@ -141,8 +141,8 @@ void DoFit(TH1D *hst, Int_t ped, Int_t pedw, Int_t spe, Int_t spew)
   //hst->Fit("func","RB");
 
 
-  GainResults[1] =  fitres[3]/1.6/5;
-  GainResults[2] =  func->GetParError(3)/1.6/5;
+  GainResults[1] =  fitres[3]/1.6/4/5;                   // Nbins * (25e-15 C/bin) / eCharge / preamp gain (= ~5)       
+  GainResults[2] =  func->GetParError(3)/1.6/4/5;
 
   
   Double_t pepar[9];
